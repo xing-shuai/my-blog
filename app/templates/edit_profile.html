@@ -3,11 +3,162 @@
 
 {% block title %}Flasky-Edit Profile{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="/static/js/cropper/cropper.min.css">
+{% endblock %}
+
 {% block page_content %}
     <div class="page-header">
         <h1>Edit Profile</h1>
     </div>
-    <div class="col-md-4">
+    <script type="text/javascript">
+        var cropper;
+        var browsed = false;
+
+        //上传头像
+        function upload_btn() {
+            if (!browsed) {
+                layer.msg('请先浏览照片');
+                return;
+            }
+            var result = cropper.getData()
+            $("#crop_y_offset").attr("value", result.y);
+            $("#crop_x_offset").attr("value", result.x);
+            $("#crop_length").attr("value", result.height);
+            var formData = new FormData($('#head_form')[0]);
+            $.ajax({
+                url: '{{ url_for('main.upload_user_head') }}',
+                type: 'POST',
+                cache: false,
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: "json",
+                success: function (res) {
+                    if (res.code == 1)
+                        location.href = '{{ url_for("main.user",username=user.username) }}';
+                    else {
+                        layer.msg('上传失败');
+                    }
+
+                }
+            });
+        }
+
+        //浏览文件
+        function browse_img() {
+            $("#browse_pic").click();
+        }
+
+        //浏览后预览照片
+        function preview(file) {
+            if (file.value) {
+                browsed = true;
+            }
+            var r = new FileReader();
+            r.readAsDataURL(file.files[0]);
+            r.onload = function (ev) {
+                cropper.replace(this.result);
+            }
+        }
+
+        //点击头像弹出上传窗口
+        function upload_user_head(username) {
+            layer.open({
+                type: 1,
+                closeBtn: 1,
+                maxWidth: 600,
+                resize: false,
+                title: '头像上传',
+                skin: 'upload_win',
+                content: '' +
+                '<div style="overflow:hidden;display: flex;">' +
+                '      <div style="width:100%;height: 300px;">' +
+                '        <img style="max-width: 100%;" id="image" src="/static/images/upload.png" alt="Picture">' +
+                '      </div>' +
+                '      <div style="height: 300px;width: 40%;">' +
+                '        <div class="preview" style="overflow:hidden;width:100px;margin:25px auto;border:1px solid #dad5d5;"></div>' +
+                '        <form id="head_form" style="margin-top: 92px;padding: 5px;">' +
+                '           <input style="display:none;" name="user" value="' + username + '">' +
+                '           <input style="display:none;" id="crop_x_offset" name="crop_x_offset" value="">' +
+                '           <input style="display:none;" id="crop_y_offset" name="crop_y_offset" value="">' +
+                '           <input style="display:none;" id="crop_length" name="crop_length" value="">' +
+                '           <input style="display:none;" type="file" name="head" id="browse_pic" onchange="preview(this)" accept="image/x-png, image/jpg, image/jpeg, image/gif">' +
+                '           <button onclick="browse_img()" type="button" class="btn btn-info btn-block">浏览</button>' +
+                '           <button onclick="upload_btn()" type="button" class="btn btn-success btn-block">上传</button>' +
+                '        </form>' +
+                '      </div>' +
+                '    </div>',
+                success: function (layero, index) {
+                    function each(arr, callback) {
+                        var length = arr.length;
+                        var i;
+
+                        for (i = 0; i < length; i++) {
+                            callback.call(arr, arr[i], i, arr);
+                        }
+                        return arr;
+                    }
+
+                    var image = document.querySelector('#image');
+                    var previews = document.querySelectorAll('.preview');
+                    cropper = new Cropper(image, {
+                        aspectRatio: 1,
+                        ready: function () {
+                            var clone = this.cloneNode();
+                            clone.className = '';
+                            clone.style.cssText = (
+                                'display: block;' +
+                                'width: 100%;' +
+                                'min-width: 0;' +
+                                'min-height: 0;' +
+                                'max-width: none;' +
+                                'max-height: none;'
+                            );
+                            each(previews, function (elem) {
+                                if (elem.childNodes.length > 0) {
+                                    elem.removeChild(elem.childNodes[0]);
+                                }
+                                elem.appendChild(clone.cloneNode());
+                            });
+                        },
+                        crop: function (e) {
+                            var data = e.detail;
+                            var cropper = this.cropper;
+                            var imageData = cropper.getImageData();
+                            var previewAspectRatio = data.width / data.height;
+
+                            each(previews, function (elem) {
+                                var previewImage = elem.getElementsByTagName('img').item(0);
+                                var previewWidth = elem.offsetWidth;
+                                var previewHeight = previewWidth / previewAspectRatio;
+                                var imageScaledRatio = data.width / previewWidth;
+
+                                elem.style.height = previewHeight + 'px';
+                                previewImage.style.width = imageData.naturalWidth / imageScaledRatio + 'px';
+                                previewImage.style.height = imageData.naturalHeight / imageScaledRatio + 'px';
+                                previewImage.style.marginLeft = -data.x / imageScaledRatio + 'px';
+                                previewImage.style.marginTop = -data.y / imageScaledRatio + 'px';
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+    </script>
+
+    <div class="col-md-2">
+        <img onclick="upload_user_head('{{ user.username }}')" class="user_header"
+             src="/static/user/head/{{ user.head_img }}">
+    </div>
+    <div class="col-md-6">
         {{ wtf.quick_form(form) }}
     </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="/static/js/cropper/cropper.min.js"></script>
 {% endblock %}

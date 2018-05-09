@@ -1,18 +1,39 @@
+<script>
+    function delete_dynamic(id) {
+        layer.confirm('确定删除吗？', {
+            btn: ['删除', '取消'],
+            move: false
+        }, function () {
+            location.href = '/delete_post/' + id
+        });
+    }
+</script>
 <ul class="posts">
     {% for post in posts %}
         <li class="post">
             <div class="profile-thumbnail">
-                <a href="{{ url_for('main.user',username=post.author.username) }}">{{ post.author.username }}</a>
+                <a href="{{ url_for('main.user',username=post.author.username) }}">
+                    <img class="post_user_img" src="/static/user/head/{{ post.author.head_img }}">
+                </a>
             </div>
             <div class="post-content">
                 <div class="post-date">{{ moment(post.timestamp).fromNow() }}</div>
-                <div class="post-body">
-                    {% if post.body_html %}
-                        {{ post.body_html|safe }}
-                    {% else %}
-                        {{ post.body }}
-                    {% endif %}
+
+                <div class="post-author"><a
+                        href="{{ url_for('.user', username=post.author.username) }}">{{ post.author.username }}</a>
                 </div>
+                <div class="post-title">
+                    <a href="{{ url_for('main.post',id=post.id) }}">{{ post.title }}</a>
+                </div>
+                {% if DETAIL %}
+                    <div class="post-body">
+                        {% if post.body_html %}
+                            {{ post.body_html|safe }}
+                        {% else %}
+                            {{ post.body }}
+                        {% endif %}
+                    </div>
+                {% endif %}
                 <div class="post-footer">
                     <a href="{{ url_for('main.post',id=post.id) }}">
                         <span class="label label-default">Permalink</span>
@@ -27,6 +48,18 @@
                     {% elif current_user.is_administrator() %}
                         <a href="{{ url_for('main.edit_post',id=post.id) }}">
                             <span class="label label-danger">Edit [Admin]</span>
+                        </a>
+                    {% endif %}
+                    {% if current_user == post.author %}
+                        {#                        <a href="{{ url_for('main.delete_post',id=post.id) }}">#}
+                        {#                            <span class="label label-danger">Delete</span>#}
+                        {#                        </a>#}
+                        <a onclick="delete_dynamic({{ post.id }})">
+                            <span class="label label-danger">Delete</span>
+                        </a>
+                    {% elif current_user.is_administrator() %}
+                        <a onclick="delete_dynamic({{ post.id }})">
+                            <span class="label label-danger">Delete [Admin]</span>
                         </a>
                     {% endif %}
                 </div>

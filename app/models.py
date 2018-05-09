@@ -67,6 +67,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(64))
     location = db.Column(db.String(64))
     about_me = db.Column(db.Text)
+    head_img = db.Column(db.String(45))
     member_since = db.Column(db.DateTime, default=datetime.utcnow)
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     posts = db.relationship('Post', backref='author', lazy='dynamic')
@@ -142,6 +143,7 @@ class AnonymousUser(AnonymousUserMixin):
 class Post(db.Model):
     __tablename__ = 'posts'
     id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.Text)
     body = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
@@ -151,9 +153,15 @@ class Post(db.Model):
     @staticmethod
     def on_changed_body(target, value, old_value, initiator):
         allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code', 'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
-                        'h1', 'h2', 'h3', 'p']
+                        'h1', 'h2', 'h3', 'p', 'img']
+        allowed_attrs = {
+            '*': ['class'],
+            'a': ['href', 'rel'],
+            'img': ['src', 'alt']
+        }
         target.body_html = bleach.linkify(
-            bleach.clean(markdown(value, output_format='html'), tags=allowed_tags, strip=True))
+            bleach.clean(markdown(value, output_format='html'), tags=allowed_tags, attributes=allowed_attrs,
+                         strip=True))
 
     def __repr__(self):
         return "<Post %r>" % self.id
@@ -174,11 +182,16 @@ class Comment(db.Model):
 
     @staticmethod
     def on_changed_body(target, value, old_value, initiator):
-        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'code', 'em', 'i',
-                        'strong']
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code', 'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
+                        'h1', 'h2', 'h3', 'p', 'img']
+        allowed_attrs = {
+            '*': ['class'],
+            'a': ['href', 'rel'],
+            'img': ['src', 'alt']
+        }
         target.body_html = bleach.linkify(bleach.clean(
             markdown(value, output_format='html'),
-            tags=allowed_tags, strip=True))
+            tags=allowed_tags, strip=True, attributes=allowed_attrs))
 
 
 db.event.listen(Comment.body, 'set', Comment.on_changed_body)

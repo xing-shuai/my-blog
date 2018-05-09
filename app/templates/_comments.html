@@ -1,9 +1,11 @@
 <ul class="comments">
     {% for comment in comments %}
         <li class="comment">
-{#            <div class="comment-thumbnail">#}
-{#                <a href="{{ url_for('main.user', username=comment.author.username) }}"> </a>#}
-{#            </div>#}
+            <div class="comment-thumbnail">
+                <a href="{{ url_for('main.user', username=comment.author.username) }}">
+                    <img class="comment_user_img" src="/static/user/head/{{ comment.author.head_img }}">
+                </a>
+            </div>
             <div class="comment-content">
                 <div class="comment-date">{{ moment(comment.timestamp).fromNow() }}</div>
                 <div class="comment-author"><a

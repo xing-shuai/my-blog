@@ -1,3 +1,8 @@
+import json
+import os
+import uuid
+from PIL import Image
+
 from flask import render_template, session, redirect, url_for, abort, flash, request, make_response
 from flask_login import login_required, current_user
 
@@ -12,7 +17,7 @@ from ..decorators import permission_required, admin_required
 def index():
     form = PostForm()
     if current_user.can(Permission.WRITE_ARTICLES) and form.validate_on_submit():
-        post = Post(body=form.body.data, author=current_user._get_current_object())
+        post = Post(title=form.title.data, body=form.body.data, author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)
@@ -80,7 +85,7 @@ def edit_profile():
     form.name.data = current_user.name
     form.location.data = current_user.location
     form.about_me.data = current_user.about_me
-    return render_template('edit_profile.html', form=form, current_page='Profile')
+    return render_template('edit_profile.html', form=form, current_page='Profile', user=current_user)
 
 
 @main.route("/edit_profile_admin/<int:id>", methods=["POST", "GET"])
@@ -103,7 +108,7 @@ def edit_profile_admin(id):
     form.name.data = user.name
     form.location.data = user.location
     form.about_me.data = user.about_me
-    return render_template('edit_profile.html', form=form, current_page='Profile')
+    return render_template('edit_profile.html', form=form, current_page='Profile', user=user)
 
 
 @main.route("/post/<int:id>", methods=["POST", "GET"])
@@ -131,12 +136,25 @@ def edit_post(id):
         abort(403)
     form = PostForm()
     if form.validate_on_submit():
+        post.title = form.title.data
         post.body = form.body.data
         db.session.add(post)
         flash('The post has been updated')
         return redirect(url_for('.post', id=post.id))
     form.body.data = post.body
-    return render_template('edit_profile.html', form=form)
+    form.title.data = post.title
+    return render_template('edit_post.html', form=form)
+
+
+@main.route('/delete_post/<int:id>')
+@login_required
+def delete_post(id):
+    post = Post.query.get_or_404(id)
+    if current_user != post.author and not current_user.can(Permission.ADMINISTER):
+        abort(403)
+    db.session.delete(post)
+    flash('You have deleted that post.')
+    return redirect(url_for(".index"))
 
 
 @main.route('/follow/<username>')
@@ -230,6 +248,50 @@ def moderate_disable(id):
     db.session.add(comment)
     flash('This comment has been disabled.')
     return redirect(url_for('.moderate', page=request.args.get("page", 1, type=int)))
+
+
+@main.route('/upload/user_head', methods=['POST', 'GET'])
+@login_required
+def upload_user_head():
+    try:
+        path = os.path.abspath(os.path.join(os.getcwd(), './app/static/user/head/'))
+        if not os.path.exists(path):
+            os.makedirs(path)
+        file = request.files["head"]
+        file_name = str(uuid.uuid1()) + "." + file.filename.split(".")[-1:][0]
+        username = request.form['user']
+        crop_x_offset = int(float(request.form['crop_x_offset']))
+        crop_y_offset = int(float(request.form['crop_y_offset']))
+        crop_length = int(float(request.form['crop_length']))
+        crop_x_offset = crop_x_offset if crop_x_offset >= 0 else 0
+        full_name = path + "/" + file_name
+        user = User.query.filter_by(username=username).first()
+        if user.head_img:
+            os.remove(path + "/" + user.head_img)
+        file.save(full_name)
+        img = Image.open(full_name)
+        height = img.size[1]
+        width = img.size[0]
+        if crop_length > width or crop_length > height:
+            crop_length = width if width > height else height
+        if crop_x_offset < 0:
+            crop_x_offset = 0
+        if crop_x_offset > width:
+            crop_x_offset = width - crop_length
+        if crop_y_offset < 0:
+            crop_y_offset = 0
+        if crop_y_offset > height:
+            crop_y_offset = height - crop_length
+
+        box = (crop_x_offset, crop_y_offset, crop_x_offset + crop_length, crop_y_offset + crop_length)
+        roi = img.crop(box)
+        os.remove(full_name)
+        roi.save(full_name)
+        user.head_img = file_name
+        db.session.add(user)
+        return json.dumps({"code": 1})
+    except:
+        return json.dumps({"code": -1})
 
 
 @main.route("/admin")

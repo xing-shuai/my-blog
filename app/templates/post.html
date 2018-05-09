@@ -4,6 +4,7 @@
 
 {% block title %}Flask-Post{% endblock %}
 {% block page_content %}
+    {% set DETAIL=True %}
     {% include '_posts.html' %}
     <h4 id="comments">Comments</h4>
     {% if current_user.can(Permission.COMMENT) %}

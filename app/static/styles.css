@@ -1,5 +1,14 @@
+body {
+    padding-top: 70px;
+}
+
+.alert {
+    margin-top: 50px;
+}
+
 a {
-    text-decoration: none
+    text-decoration: none;
+    cursor: pointer;
 }
 
 .profile-thumbnail {
@@ -30,6 +39,7 @@ div.post-tabs ul.posts {
 ul.posts li.post {
     padding: 8px;
     border-bottom: 1px solid #e0e0e0;
+    padding-top: 15px;
 }
 
 ul.posts li.post:hover {
@@ -53,8 +63,24 @@ div.post-content {
     min-height: 48px;
 }
 
+div.post-body {
+    margin-top: 10px;
+}
+
+.post-title {
+    font-weight: bold;
+    font-size: 16px;
+    margin-top: 5px;
+}
+
+.post-title a {
+    color: #545050;
+    text-decoration: none;
+}
+
 div.post-footer {
     text-align: right;
+    margin-top: 10px;
 }
 
 ul.comments {
@@ -137,4 +163,35 @@ div.flask-pagedown-preview h3 {
 
 .table.followers tr {
     border-bottom: 1px solid #e0e0e0;
+}
+
+.account_head {
+    height: 24px;
+    border-radius: 15px;
+    margin-right: 2px;
+}
+
+.nav_bar {
+    box-shadow: -2px 4px 10px #d0d0d0;
+}
+
+.user_header {
+    margin-top: 40px;
+    height: 150px;
+}
+
+.upload_win {
+    width: 500px;
+    height: 342px;
+    box-shadow: none;
+    color: #fff;
+}
+
+.post_user_img {
+    height: 35px;
+    border-radius: 25px;
+}
+.comment_user_img{
+    height: 28px;
+    border-radius: 25px;
 }
